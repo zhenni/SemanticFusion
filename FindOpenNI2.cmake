@@ -26,6 +26,7 @@ find_path(OPENNI2_INCLUDE_DIR OpenNI.h
             "${CMAKE_SOURCE_DIR}/../../OpenNI2/Include"
             "${CMAKE_SOURCE_DIR}/../../../OpenNI2/Include"
             "${CMAKE_SOURCE_DIR}/../../../code/OpenNI2/Include"
+            /playpen/zhenlinx/Code/Robotics781/SemanticFusion/elasticfusionpublic/deps/OpenNI2/Include
             /usr/include
             /user/include
           PATH_SUFFIXES openni2 ni2
@@ -50,6 +51,7 @@ find_library(OPENNI2_LIBRARY
                "${CMAKE_SOURCE_DIR}/../../OpenNI2/Bin/x64-Release"
                "${CMAKE_SOURCE_DIR}/../../../OpenNI2/Bin/x64-Release"
                "${CMAKE_SOURCE_DIR}/../../../code/OpenNI2/Bin/x64-Release"
+	       /playpen/zhenlinx/Code/Robotics781/SemanticFusion/elasticfusionpublic/deps/OpenNI2/Bin/x64-Release
                /usr/lib
                /user/lib
              PATH_SUFFIXES ${OPENNI_PATH_SUFFIXES}

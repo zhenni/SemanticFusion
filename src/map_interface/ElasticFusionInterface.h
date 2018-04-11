@@ -39,6 +39,12 @@ public:
     Resolution::getInstance(width_, height_);
     // Primesense intrinsics
     Intrinsics::getInstance(528, 528, width_ / 2, height_ / 2);
+    std::cout << "In head Initialize elastic_fusion_" << std::endl;
+    elastic_fusion_.reset(new ElasticFusion(200, 35000, 5e-05, 1e-05, true,
+                                          false,false,115,10,8,10));
+                                          //false,false,115,10,8,100));    
+    std::cout << "In headdd Initialized elastic_fusion_" << std::endl;
+
   }
   virtual ~ElasticFusionInterface();
 

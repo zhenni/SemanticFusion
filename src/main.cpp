@@ -57,29 +57,42 @@ int main(int argc, char *argv[])
 {
   // CNN Skip params
   const int cnn_skip_frames = 10;
+  
   // Option CPU-based CRF smoothing
   const bool use_crf = false;
   const int crf_skip_frames = 500;
   const int crf_iterations = 10;
+  
   // Load the network model and parameters
   CaffeInterface caffe;
+  
   // This is for the RGB-D network
   caffe.Init("../caffe_semanticfusion/models/nyu_rgbd/inference.prototxt","../caffe_semanticfusion/models/nyu_rgbd/inference.caffemodel");
   // This is for the RGB network
-  //caffe.Init("../caffe/models/nyu_rgb/inference.prototxt","../caffe/models/nyu_rgb/inference.caffemodel");
+  //caffe.Init("../caffe_semanticfusion/models/nyu_rgb/inference.prototxt","../caffe_semanticfusion/models/nyu_rgb/inference.caffemodel");
+  
   const int num_classes = caffe.num_output_classes();
   std::cout<<"Network produces "<<num_classes<<" output classes"<<std::endl;
   // Check the class colour output and the number of classes matches
   std::vector<ClassColour> class_colour_lookup = load_colour_scheme("../class_colour_scheme.data",num_classes);
+  
+  std::cout<<"initialising SemanticFusionInterface" << std::endl;
   std::unique_ptr<SemanticFusionInterface> semantic_fusion(new SemanticFusionInterface(num_classes,100));
+  
   // Initialise the Gui, Map, and Kinect Log Reader
   const int width = 640;
   const int height = 480;
   Resolution::getInstance(width, height);
   Intrinsics::getInstance(528, 528, 320, 240);
+  
+  std::cout<<"Initialising Gui" << std::endl;
   std::unique_ptr<Gui> gui(new Gui(true,class_colour_lookup,640,480));
+  
+  std::cout<<"Initialising ElasticFusionInterface" << std::endl;
   std::unique_ptr<ElasticFusionInterface> map(new ElasticFusionInterface());
+  
   // Choose the input Reader, live for a running OpenNI device, PNG for textfile lists of PNG frames
+  std::cout<<"Initialising LogReader" << std::endl;  
   std::unique_ptr<LogReader> log_reader;
   if (argc > 2) {
     log_reader.reset(new PNGLogReader(argv[1],argv[2]));
@@ -93,42 +106,65 @@ int main(int argc, char *argv[])
   if (!map->Init(class_colour_lookup)) {
     std::cout<<"ElasticFusionInterface init failure"<<std::endl;
   }
+  
   // Frame numbers for logs
   int frame_num = 0;
   std::shared_ptr<caffe::Blob<float> > segmented_prob;
+  
+  // running loop
+  std::cout<< "Start Running!" <<std::endl;
   while(!pangolin::ShouldQuit() && log_reader->hasMore()) {
+    printf("frame %i\n", frame_num);
+    //std::cout<< "GUI preCall!" <<std::endl;
     gui->preCall();
+    
     // Read and perform an elasticFusion update
     if (!gui->paused() || gui->step()) {
+      //std::cout << "getNext" << std::endl;
       log_reader->getNext();
+      
+      //std::cout << "setTrackingOnly" << std::endl;
       map->setTrackingOnly(gui->tracking());
+      
+      //std::cout << "ProcessFrame" << std::endl;
       if (!map->ProcessFrame(log_reader->rgb, log_reader->depth,log_reader->timestamp)) {
         std::cout<<"Elastic fusion lost!"<<argv[1]<<std::endl;
         return 1;
       }
+      
       // This queries the map interface to update the indexes within the table 
       // It MUST be done everytime ProcessFrame is performed as long as the map
       // is not performing tracking only (i.e. fine to not call, when working
       // with a static map)
+      
+      //std::cout << "UpdateProbabilityTable" << std::endl;
       if(!gui->tracking()) {
         semantic_fusion->UpdateProbabilityTable(map);
       }
+      
       // We do not need to perform a CNN update every frame, we perform it every
       // 'cnn_skip_frames'
+      //std::cout << "Caffe ProcessFrame" << std::endl;
+
       if (frame_num == 0 || (frame_num > 1 && ((frame_num + 1) % cnn_skip_frames == 0))) {
         if (log_reader->hasDepthFilled()) {
           segmented_prob = caffe.ProcessFrame(log_reader->rgb, log_reader->depthfilled, height, width);
         } else {
           segmented_prob = caffe.ProcessFrame(log_reader->rgb, log_reader->depth, height, width);
         }
-        semantic_fusion->UpdateProbabilities(segmented_prob,map);
+        //printf("%f\n", segmented_prob->shape());
+        //const float* prob_cpu = segmented_prob->cpu_data();
+       	semantic_fusion->UpdateProbabilities(segmented_prob,map);
       }
+      
+      //crf update
       if (use_crf && frame_num % crf_skip_frames == 0) {
-        std::cout<<"Performing CRF Update..."<<std::endl;
+        //std::cout<<"Performing CRF Update..."<<std::endl;
         semantic_fusion->CRFUpdate(map,crf_iterations);
       } 
     }
     frame_num++;
+    
     // This is for outputting the predicted frames
     if (log_reader->isLabeledFrame()) {
       // Change this to save the NYU raw label predictions to a folder.

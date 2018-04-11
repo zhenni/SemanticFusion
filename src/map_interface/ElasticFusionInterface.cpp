@@ -40,9 +40,12 @@ bool ElasticFusionInterface::Init(std::vector<ClassColour> class_colour_lookup) 
   // can be turned to 100, as in the commented line below. However, the code
   // in elasticfusion has also been modified to ignore a 16 pixel border of the
   // RGB residual, which allows some RGB tracking while also ignoring the border.
-  elastic_fusion_.reset(new ElasticFusion(200, 35000, 5e-05, 1e-05, true,
-                                          false,false,115,10,8,10));
+  std::cout << "Initialize elastic_fusion_" << std::endl;
+  //elastic_fusion_.reset(new ElasticFusion(200, 35000, 5e-05, 1e-05, true,
+                                          //false,false,115,10,8,10));
                                           //false,false,115,10,8,100));
+  std::cout << "Initialized elastic_fusion_" << std::endl;
+
   const int surfel_render_size = Resolution::getInstance().width() * 
                                   Resolution::getInstance().height();
   surfel_ids_.resize(surfel_render_size);

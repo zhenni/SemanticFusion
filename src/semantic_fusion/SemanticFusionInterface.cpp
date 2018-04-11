@@ -142,16 +142,36 @@ void SemanticFusionInterface::UpdateProbabilities(std::shared_ptr<caffe::Blob<fl
 {
   CHECK_EQ(num_classes_,probs->channels());
   const int id_width = map->width();
+  // printf("id_width: %i\n", id_width);
   const int id_height = map->height();
+  // printf("id_height: %i\n", id_height);
   const int prob_width = probs->width();
+  // printf("prob_width: %i\n", prob_width);
   const int prob_height = probs->height();
+  // printf("prob_height: %i\n", prob_height);
   const int prob_channels = probs->channels();
+  // printf("prob_channels: %i\n", prob_channels);
   const int map_size = class_probabilities_gpu_->width();
+  // printf("map_size: %i\n", map_size);
+  
   fuseSemanticProbabilities(map->GetSurfelIdsGpu(),id_width,id_height,probs->gpu_data(),
                     prob_width,prob_height,prob_channels,
                     class_probabilities_gpu_->mutable_gpu_data(),
                     class_max_gpu_->mutable_gpu_data(),map_size);
   map->UpdateSurfelClassGpu(map_size,class_max_gpu_->gpu_data(),class_max_gpu_->gpu_data() + map_size,colour_threshold_);
+  
+  // For Debug: get the max probability and class label
+  const float* max_prob = class_max_gpu_->cpu_data() + max_components_;
+  const float* max_class = class_max_gpu_->cpu_data();
+  float this_max_prob=-1;
+  float this_max_class=-1;
+  for (int id = 1 ;id < current_table_size_; id++){
+              this_max_prob = std::max(this_max_prob, max_prob[id]);
+              this_max_class = std::max(this_max_class, max_class[id]);
+      
+  }
+  std::cout<<"max_prob"<<this_max_prob<<std::endl;
+  std::cout<<"max_class"<<this_max_class<<std::endl;
 }
 
 void SemanticFusionInterface::CRFUpdate(const std::unique_ptr<ElasticFusionInterface>& map, const int iterations) {

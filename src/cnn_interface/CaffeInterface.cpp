@@ -65,6 +65,7 @@ std::shared_ptr<caffe::Blob<float> > CaffeInterface::ProcessFrame(const ImagePtr
 
   float* input_data = inputs[0]->mutable_cpu_data();
   const float mean[] = {104.0,117.0,123.0};
+
   for (int h = 0; h < network_height; ++h) {
     const uchar* image_ptr = resized_image.ptr<uchar>(h);
     const uint16_t* depth_ptr = resized_depth.ptr<uint16_t>(h);
@@ -90,9 +91,13 @@ std::shared_ptr<caffe::Blob<float> > CaffeInterface::ProcessFrame(const ImagePtr
   }
   float loss;
   const std::vector<caffe::Blob<float>* > output = network_->Forward(inputs,&loss);
+
+  // why?
   if (!output_probabilities_) {
     output_probabilities_.reset(new caffe::Blob<float>(output[0]->shape()));
   }
+  
+  // std::cout << output[0]->shape()[0] << std::endl;
   output_probabilities_->CopyFrom(*output[0]);
   return output_probabilities_;
 }

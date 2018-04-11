@@ -1,0 +1,44 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x1c\x00S\x00e\x00m\x00a\x00n\x00t\x00i\x00c\x00F\x00u\x00s\x00i\x00o\x00n)
+
+[CMake]
+Build Directory Count=1
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///playpen/zhenlinx/Code/Robotics781/SemanticFusion/build
+Build Type=
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=SemanticFusion
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=/playpen/zhenlinx/Data/nyu_data_small/bathroom_0003.txt /playpen/zhenlinx/Data/nyu_data_small/output_predictions.txt
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x1c\x00S\x00e\x00m\x00a\x00n\x00t\x00i\x00c\x00F\x00u\x00s\x00i\x00o\x00n\x00\x00\x00\x1c\x00S\x00e\x00m\x00a\x00n\x00t\x00i\x00c\x00F\x00u\x00s\x00i\x00o\x00n)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///playpen/zhenlinx/Code/Robotics781/SemanticFusion/build/SemanticFusion
+External Terminal=gnome-terminal -e %exe
+Project Target=SemanticFusion,SemanticFusion
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Project]
+VersionControlSupport=kdevgit
