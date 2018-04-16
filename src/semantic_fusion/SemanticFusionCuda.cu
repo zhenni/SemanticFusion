@@ -57,34 +57,61 @@ void semanticTableUpdate(cudaTextureObject_t ids, const int ids_width, const int
             }
         }
     }
+
+    // for (int h = y_min; h < 480; ++h) {
+    //     int other_surfel_id;
+    //     for (int w = x_min; w < x_max; ++w) {
+    //         other_surfel_id = tex2D<int>(ids,w,h);
+    //         if (other_surfel_id == surfel_id) {
+    //             first_h = h;
+    //             first_w = w;
+    //             break;
+    //         }
+    //     }
+    //     if (other_surfel_id == surfel_id) {
+    //             break;
+    //         }
+    // }
+
     if (first_h != y || first_w != x) {
         surfel_id = 0;
     }
     if (surfel_id > 0) {
+        // x,y coordinates in probability image
         const int prob_x = static_cast<int>((float(x) / ids_width) * prob_width);
         const int prob_y = static_cast<int>((float(y) / ids_height) * prob_height);
-        const int channel_offset = prob_width * prob_height;
+        
+        // memory offset of the probability of the neighborhood class at the same pixel of probability image
+        const int channel_offset = prob_width * prob_height; 
+        
+        // pointer at (prob_x,prob_y)
         const float* probability = probabilities + (prob_y * prob_width + prob_x);
+
+        // pointer at the surfel in prob_table
         float* prior_probability = map_table + surfel_id;
+
+        // go though all class channels to update prob of the correspond surfel
         float total = 0.0;
         for (int class_id = 0; class_id < prob_channels; ++class_id) {
-            prior_probability[0] *= probability[0];
-            total += prior_probability[0];
-            probability += channel_offset;
-            prior_probability += map_size;
+            prior_probability[0] *= probability[0]; // use prob of a class of a pixel to update its correponsded surfel
+            total += prior_probability[0];  // sum prob of all classes
+            probability += channel_offset;  // go to the next class prob on prob image
+            prior_probability += map_size;  // go to the next class prob on surfel map
         }
+
         // Reset the pointers to the beginning again
         probability = probabilities + (prob_y * prob_width + prob_x);
         prior_probability = map_table + surfel_id;
         float max_probability = 0.0;
         int max_class = -1;
         float new_total = 0.0;
+        // normalize probs and search the class with max prob
         for (int class_id = 0; class_id < prob_channels; ++class_id) {
             // Something has gone unexpectedly wrong - reinitialse
             if (total <= 1e-5) {
                 prior_probability[0] = 1.0f / prob_channels;
             } else {
-                prior_probability[0] /= total;
+                prior_probability[0] /= total; // normalize prob 
                 if (class_id > 0 && prior_probability[0] > max_probability) {
                     max_probability = prior_probability[0];
                     max_class = class_id;
@@ -150,8 +177,8 @@ void updateProbabilityTable(int* filtered_ids, const int num_filtered, const int
                             float const* map_table, float* new_map_table)
 {
     const int threads = 512;
-    const int num_to_update = new_prob_width * prob_height;
-    const int blocks = (num_to_update + threads - 1) / threads;
+    const int num_to_update = new_prob_width * prob_height; // max_components_*num_classes_
+    const int blocks = (num_to_update + threads - 1) / threads;  // Why?
     dim3 dimGrid(blocks);
     dim3 dimBlock(threads);
     updateTable<<<dimGrid,dimBlock>>>(num_to_update,filtered_ids,num_filtered,current_table_size,probability_table,prob_width,prob_height,new_prob_width,new_probability_table, map_table, new_map_table);

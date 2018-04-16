@@ -98,8 +98,8 @@ void SemanticFusionInterface::UpdateProbabilityTable(const std::unique_ptr<Elast
 {
   const int new_table_width = map->GetMapSurfelCount();
   const int num_deleted = map->GetMapSurfelDeletedCount();
-  const int table_width = class_probabilities_gpu_->width();
-  const int table_height = class_probabilities_gpu_->height();
+  const int table_width = class_probabilities_gpu_->width();  // max_components_
+  const int table_height = class_probabilities_gpu_->height();  // num_classes_
   updateProbabilityTable(map->GetDeletedSurfelIdsGpu(),num_deleted,current_table_size_,
                     class_probabilities_gpu_->gpu_data(), table_width, table_height,
                     new_table_width, class_probabilities_gpu_buffer_->mutable_gpu_data(),
@@ -142,17 +142,17 @@ void SemanticFusionInterface::UpdateProbabilities(std::shared_ptr<caffe::Blob<fl
 {
   CHECK_EQ(num_classes_,probs->channels());
   const int id_width = map->width();
-  // printf("id_width: %i\n", id_width);
+  printf("id_width: %i\n", id_width);
   const int id_height = map->height();
-  // printf("id_height: %i\n", id_height);
+  printf("id_height: %i\n", id_height);
   const int prob_width = probs->width();
-  // printf("prob_width: %i\n", prob_width);
+  printf("prob_width: %i\n", prob_width);
   const int prob_height = probs->height();
-  // printf("prob_height: %i\n", prob_height);
+  printf("prob_height: %i\n", prob_height);
   const int prob_channels = probs->channels();
-  // printf("prob_channels: %i\n", prob_channels);
+  printf("prob_channels: %i\n", prob_channels);
   const int map_size = class_probabilities_gpu_->width();
-  // printf("map_size: %i\n", map_size);
+  printf("map_size: %i\n", map_size);
   
   fuseSemanticProbabilities(map->GetSurfelIdsGpu(),id_width,id_height,probs->gpu_data(),
                     prob_width,prob_height,prob_channels,
