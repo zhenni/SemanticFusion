@@ -149,9 +149,9 @@ void updateTable(int n, const int* deleted_ids, const int num_deleted, const int
 {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < n) {
-        const int class_id = index / new_prob_width;
-        const int component_id = index - (class_id * new_prob_width);
-        const int new_id = (class_id * prob_width) + component_id;
+        const int class_id = index / new_prob_width;  // class index
+        const int component_id = index - (class_id * new_prob_width); // surfel index in map
+        const int new_id = (class_id * prob_width) + component_id;  // surfel index in prob_table
         if (component_id >= num_deleted) {
             // Initialise to prior (prob height is the number of classes)
             new_probability_table[new_id] = 1.0f / prob_height;
@@ -177,7 +177,7 @@ void updateProbabilityTable(int* filtered_ids, const int num_filtered, const int
                             float const* map_table, float* new_map_table)
 {
     const int threads = 512;
-    const int num_to_update = new_prob_width * prob_height; // max_components_*num_classes_
+    const int num_to_update = new_prob_width * prob_height; // surfel_counts * num_classes_
     const int blocks = (num_to_update + threads - 1) / threads;  // Why?
     dim3 dimGrid(blocks);
     dim3 dimBlock(threads);
