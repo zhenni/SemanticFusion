@@ -232,6 +232,9 @@ void SemanticFusionInterface::SaveArgMaxPredictions(std::string& filename,const 
       int this_max_class = 0;
       const int start = 0;
       const int end = 2;
+      
+      // As segmentation mask is 320x240 while the orginal image is 640x480, used the highest probability of the 2x2 patch
+      // and corresponding class label for the pixel in the segmentation mask
       for (int x = start; x < end; ++x) {
         for (int y = start; y < end; ++y) {
           int id = surfel_ids[((h * 2) + y) * 640 + (w * 2 + x)];

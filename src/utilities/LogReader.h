@@ -26,7 +26,9 @@
 #include <Utils/Resolution.h>
 
 #include "JPEGLoader.h"
-
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
 class LogReader
 {
     public:
@@ -77,6 +79,7 @@ class LogReader
         int currentFrame;
 
         unsigned short * depthfilled;
+        std::vector<cv::Mat> cvMasks;
 
     protected:
         Bytef * decompressionBufferDepth;
@@ -94,6 +97,8 @@ class LogReader
         int numPixels;
 
         JPEGLoader jpeg;
+
+
 };
 
 #endif /* LOGREADER_H_ */

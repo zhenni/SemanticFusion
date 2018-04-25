@@ -45,19 +45,22 @@ void semanticTableUpdate(cudaTextureObject_t ids, const int ids_width, const int
     const int x_min = (x - check_patch) < 0 ? 0 : (x - check_patch);
     const int x_max = (x + check_patch) > 640 ? 640 : (x + check_patch);
     const int y_min = (y - check_patch) < 0 ? 0 : (y - check_patch);
+    const int y_max = (y + check_patch) < 480 ? 480 : (y + check_patch);
+
     int surfel_id = tex2D<int>(ids,x,y);
     int first_h, first_w;
-    for (int h = y_min; h < 480; ++h) {
-        for (int w = x_min; w < x_max; ++w) {
-            int other_surfel_id = tex2D<int>(ids,w,h);
-            if (other_surfel_id == surfel_id) {
-                first_h = h;
-                first_w = w;
-                break;
-            }
-        }
-    }
+    // for (int h = y_min; h < 480; ++h) {
+    //     for (int w = x_min; w < x_max; ++w) {
+    //         int other_surfel_id = tex2D<int>(ids,w,h);
+    //         if (other_surfel_id == surfel_id) {
+    //             first_h = h;
+    //             first_w = w;
+    //             break;
+    //         }
+    //     }
+    // }
 
+    //patch rule 1
     // for (int h = y_min; h < 480; ++h) {
     //     int other_surfel_id;
     //     for (int w = x_min; w < x_max; ++w) {
@@ -72,6 +75,21 @@ void semanticTableUpdate(cudaTextureObject_t ids, const int ids_width, const int
     //             break;
     //         }
     // }
+    //patch rule 2
+    for (int h = y_min; h < y_max; ++h) {
+        int other_surfel_id;
+        for (int w = x_min; w < x_max; ++w) {
+            other_surfel_id = tex2D<int>(ids,w,h);
+            if (other_surfel_id == surfel_id) {
+                first_h = h;
+                first_w = w;
+                break;
+            }
+        }
+        if (other_surfel_id == surfel_id) {
+                break;
+            }
+    }
 
     if (first_h != y || first_w != x) {
         surfel_id = 0;
@@ -149,9 +167,9 @@ void updateTable(int n, const int* deleted_ids, const int num_deleted, const int
 {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < n) {
-        const int class_id = index / new_prob_width;  // class index
-        const int component_id = index - (class_id * new_prob_width); // surfel index in map
-        const int new_id = (class_id * prob_width) + component_id;  // surfel index in prob_table
+        const int class_id = index / new_prob_width;
+        const int component_id = index - (class_id * new_prob_width);
+        const int new_id = (class_id * prob_width) + component_id;
         if (component_id >= num_deleted) {
             // Initialise to prior (prob height is the number of classes)
             new_probability_table[new_id] = 1.0f / prob_height;
@@ -177,8 +195,8 @@ void updateProbabilityTable(int* filtered_ids, const int num_filtered, const int
                             float const* map_table, float* new_map_table)
 {
     const int threads = 512;
-    const int num_to_update = new_prob_width * prob_height; // surfel_counts * num_classes_
-    const int blocks = (num_to_update + threads - 1) / threads;  // Why?
+    const int num_to_update = new_prob_width * prob_height; // max_components_*num_classes_
+    const int blocks = (num_to_update + threads - 1) / threads;  
     dim3 dimGrid(blocks);
     dim3 dimBlock(threads);
     updateTable<<<dimGrid,dimBlock>>>(num_to_update,filtered_ids,num_filtered,current_table_size,probability_table,prob_width,prob_height,new_prob_width,new_probability_table, map_table, new_map_table);

@@ -16,8 +16,8 @@
  *
  */
 
-#ifndef PNGLOGREADER_H_
-#define PNGLOGREADER_H_
+#ifndef MASKLOGREADER_H_
+#define MASKLOGREADER_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,17 @@
 #include <string>
 #include <vector>
 
-struct FrameInfo {
+// extern const int MAX_NUM_OBJECTS = 20;
+
+struct MaskInfo{
+  int mask_id;
+  int class_id;
+  float probability;
+  std::string mask_image_file;
+  cv::Mat mask_cv;
+};
+
+struct FrameInfoMask {
   int64_t timestamp;
   std::string depth_path;
   std::string rgb_path;
@@ -36,19 +46,24 @@ struct FrameInfo {
   std::string rgb_id;
   bool labeled_frame;
   std::string frame_id;
+  std::vector<MaskInfo> masks_;
+  int num_masks;
 };
 
-
-class PNGLogReader : public LogReader
+class MaskLogReader : public LogReader
 {
 public:
-	PNGLogReader(std::string file, std::string labels_file);
+	MaskLogReader(std::string file, std::string labels_file);
 
-	virtual ~PNGLogReader();
+	virtual ~MaskLogReader();
 
   void getNext();
 
   int getNumFrames();
+
+  int getNumMasks();
+
+  std::vector<cv::Mat *> getMasks();
 
   bool hasMore();
 
@@ -70,13 +85,14 @@ public:
 
   bool hasDepthFilled() { return has_depth_filled; }
 
+  MaskInfo masksinfo;
 private:
   int64_t lastFrameTime;
   int lastGot;
-  std::vector<FrameInfo> frames_;
+  std::vector<FrameInfoMask> frames_;
   Bytef * decompressionBufferDepthFilled;
   bool has_depth_filled;
-public:
+protected:
   int num_labelled;
 };
 
