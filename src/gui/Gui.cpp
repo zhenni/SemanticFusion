@@ -19,6 +19,10 @@
 #include "Gui.h"
 #include "GuiCuda.h"
 #include <cuda_runtime.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/photo/photo.hpp>
 
 #define gpuErrChk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -164,15 +168,39 @@ void Gui::displayRawNetworkPredictions(const std::string & id, float* device_ptr
   glEnable(GL_DEPTH_TEST);
 }
 
-void Gui::displayInstancePredictions(const std::string & id, float* device_ptr) {
-  pangolin::CudaScopedMappedArray arr_tex(*probability_texture_array_.get());
+void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width) {
+  pangolin::CudaScopedMappedArray arr_tex(*instance_predictions_texture_array_.get());
   gpuErrChk(cudaGetLastError());
-  float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
-  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)my_device_ptr, sizeof(float) * 224 * 224 , cudaMemcpyDeviceToDevice);
+
+  cv::Mat input_image(height,width,CV_8UC3, rgb);
+
+  caffe::Blob<float> image_blob(1, 4, 480, 640);
+  float* image_data = image_blob->mutable_cpu_data();
+
+  for (int h = 0; h < height; ++h) {
+    const uchar* image_ptr = input_image.ptr<uchar>(h);
+    int image_index = 0;
+    for (int w = 0; w < width; ++w) {
+      float r = static_cast<float>(image_ptr[image_index++]);
+      float g = static_cast<float>(image_ptr[image_index++]);
+      float b = static_cast<float>(image_ptr[image_index++]);
+      const int r_offset = ((0 * network_height) + h) * network_width + w;
+      const int g_offset = ((1 * network_height) + h) * network_width + w;
+      const int b_offset = ((2 * network_height) + h) * network_width + w;
+      image_data[b_offset] = b;
+      image_data[g_offset] = g;
+      image_data[r_offset] = r;
+    }
+  }
+
+  image_data_gpu = image_blob->mutable_gpu_data();
+  // float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
+  // cudaMemcpyToArray(*arr_tex, 0, 0, (void*)my_device_ptr, sizeof(float) * 224 * 224 , cudaMemcpyDeviceToDevice);
+  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)image_data_gpu, sizeof(float) * height * width , cudaMemcpyDeviceToDevice);
   gpuErrChk(cudaGetLastError());
   glDisable(GL_DEPTH_TEST);
   pangolin::Display(id).Activate();
-  probability_texture_array_->RenderToViewport(true);
+  instance_predictions_texture_array_->RenderToViewport(true);
   glEnable(GL_DEPTH_TEST);
 }
 

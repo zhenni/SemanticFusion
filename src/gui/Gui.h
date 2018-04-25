@@ -71,6 +71,9 @@ private:
   std::unique_ptr<pangolin::Var<ClassIdInput>> class_choice_;
   std::unique_ptr<pangolin::GlTextureCudaArray> probability_texture_array_;
   std::unique_ptr<pangolin::GlTextureCudaArray> rendered_segmentation_texture_array_;
+
+  std::unique_ptr<pangolin::GlTextureCudaArray> instance_predictions_texture_array_;
+
   pangolin::GlRenderBuffer* render_buffer_;
   pangolin::GlFramebuffer* color_frame_buffer_;
   GPUTexture* color_texture_;
