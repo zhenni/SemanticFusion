@@ -45,6 +45,7 @@ public:
   void displayArgMaxClassColouring(const std::string & id, float* device_ptr, int channels,const float* map, const int map_size, cudaTextureObject_t ids, const float threshold);
   void displayRawNetworkPredictions(const std::string & id, float* device_ptr);
   void displayImg(const std::string & id, GPUTexture * img);
+  void Gui::displayInstancePredictiona(const std::string & id, float* device_ptr) 
 
   bool reset() const { return pangolin::Pushed(*reset_.get()); }
   bool paused() const { return *pause_.get(); }

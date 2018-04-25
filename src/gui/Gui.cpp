@@ -76,10 +76,12 @@ Gui::Gui(bool live_capture, std::vector<ClassColour> class_colour_lookup, const 
   // Small views along the bottom
   pangolin::Display("raw").SetAspect(640.0f/480.0f);
   pangolin::Display("pred").SetAspect(640.0f/480.0f);
+  pangolin::Display("instance_pred").SetAspect(640.0f/480.0f);  
   pangolin::Display("segmentation").SetAspect(640.0f/480.0f);
   pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0),1/4.0f,pangolin::Attach::Pix(180),1.0).SetLayout(pangolin::LayoutEqualHorizontal)
     .AddDisplay(pangolin::Display("pred"))
     .AddDisplay(pangolin::Display("segmentation"))
+    .AddDisplay(pangolin::Display("instance_pred"))
     .AddDisplay(pangolin::Display("raw"));
 
   // Vertical view along the side
@@ -151,6 +153,18 @@ void Gui::displayArgMaxClassColouring(const std::string & id, float* device_ptr,
 }
 
 void Gui::displayRawNetworkPredictions(const std::string & id, float* device_ptr) {
+  pangolin::CudaScopedMappedArray arr_tex(*probability_texture_array_.get());
+  gpuErrChk(cudaGetLastError());
+  float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
+  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)my_device_ptr, sizeof(float) * 224 * 224 , cudaMemcpyDeviceToDevice);
+  gpuErrChk(cudaGetLastError());
+  glDisable(GL_DEPTH_TEST);
+  pangolin::Display(id).Activate();
+  probability_texture_array_->RenderToViewport(true);
+  glEnable(GL_DEPTH_TEST);
+}
+
+void Gui::displayInstancePredictions(const std::string & id, float* device_ptr) {
   pangolin::CudaScopedMappedArray arr_tex(*probability_texture_array_.get());
   gpuErrChk(cudaGetLastError());
   float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
