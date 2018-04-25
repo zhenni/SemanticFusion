@@ -30,6 +30,7 @@
 
 #include <map_interface/ElasticFusionInterface.h>
 #include <utilities/Types.h>
+#include <utilities/MaskLogReader.h>
 
 struct ClassIdInput;
 
@@ -45,7 +46,7 @@ public:
   void displayArgMaxClassColouring(const std::string & id, float* device_ptr, int channels,const float* map, const int map_size, cudaTextureObject_t ids, const float threshold);
   void displayRawNetworkPredictions(const std::string & id, float* device_ptr);
   void displayImg(const std::string & id, GPUTexture * img);
-  void displayInstancePredictions(const std::string & id, float* device_ptr); 
+  void displayInstancePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width, std::vector<MaskInfo>* masks); 
 
   bool reset() const { return pangolin::Pushed(*reset_.get()); }
   bool paused() const { return *pause_.get(); }

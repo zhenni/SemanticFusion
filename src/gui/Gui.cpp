@@ -24,6 +24,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/photo/photo.hpp>
 
+#include <cnn_interface/CaffeInterface.h>
+
+
 #define gpuErrChk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool
@@ -104,6 +107,8 @@ Gui::Gui(bool live_capture, std::vector<ClassColour> class_colour_lookup, const 
   probability_texture_array_.reset(new pangolin::GlTextureCudaArray(224,224,GL_LUMINANCE32F_ARB));
   rendered_segmentation_texture_array_.reset(new pangolin::GlTextureCudaArray(segmentation_width_,segmentation_height_,GL_RGBA32F));
 
+  instance_predictions_texture_array_.reset(new pangolin::GlTextureCudaArray(640, 480, GL_RGBA32F));
+
   // The gpu colour lookup
   std::vector<float> class_colour_lookup_rgb;
   for (unsigned int class_id = 0; class_id < class_colour_lookup_.size(); ++class_id) {
@@ -168,14 +173,14 @@ void Gui::displayRawNetworkPredictions(const std::string & id, float* device_ptr
   glEnable(GL_DEPTH_TEST);
 }
 
-void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width) {
+void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width, std::vector<MaskInfo>* masks) {
   pangolin::CudaScopedMappedArray arr_tex(*instance_predictions_texture_array_.get());
   gpuErrChk(cudaGetLastError());
 
   cv::Mat input_image(height,width,CV_8UC3, rgb);
 
-  caffe::Blob<float> image_blob(1, 4, 480, 640);
-  float* image_data = image_blob->mutable_cpu_data();
+  caffe::Blob<float> image_blob(1, 480, 640, 4);
+  float* image_data = image_blob.mutable_cpu_data();
 
   for (int h = 0; h < height; ++h) {
     const uchar* image_ptr = input_image.ptr<uchar>(h);
@@ -184,19 +189,22 @@ void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb,
       float r = static_cast<float>(image_ptr[image_index++]);
       float g = static_cast<float>(image_ptr[image_index++]);
       float b = static_cast<float>(image_ptr[image_index++]);
-      const int r_offset = ((0 * network_height) + h) * network_width + w;
-      const int g_offset = ((1 * network_height) + h) * network_width + w;
-      const int b_offset = ((2 * network_height) + h) * network_width + w;
-      image_data[b_offset] = b;
-      image_data[g_offset] = g;
-      image_data[r_offset] = r;
+      // std::cout << r << ',' << g << ',' << b << std::endl;
+      const int r_offset = (h * width + w) * 4 + 0; // ((0 * height) + h) * width + w;
+      const int g_offset = (h * width + w) * 4 + 1; // ((1 * height) + h) * width + w;
+      const int b_offset = (h * width + w) * 4 + 2; // ((2 * height) + h) * width + w;
+      image_data[b_offset] = b/255.0f;
+      image_data[g_offset] = g/255.0f;
+      image_data[r_offset] = r/255.0f;
+      // image_data[((3 * height) + h) * width + w] = 1;
+      image_data[(h * width + w) * 4 + 3] = 1;
     }
   }
 
-  image_data_gpu = image_blob->mutable_gpu_data();
+  float* image_data_gpu = image_blob.mutable_gpu_data();
   // float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
   // cudaMemcpyToArray(*arr_tex, 0, 0, (void*)my_device_ptr, sizeof(float) * 224 * 224 , cudaMemcpyDeviceToDevice);
-  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)image_data_gpu, sizeof(float) * height * width , cudaMemcpyDeviceToDevice);
+  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)image_data_gpu, sizeof(float) * height * width * 4 , cudaMemcpyDeviceToDevice);
   gpuErrChk(cudaGetLastError());
   glDisable(GL_DEPTH_TEST);
   pangolin::Display(id).Activate();
