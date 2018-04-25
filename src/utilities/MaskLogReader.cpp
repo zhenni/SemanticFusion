@@ -74,9 +74,9 @@ MaskLogReader::MaskLogReader(std::string file, std::string labels_file)
       temp_mask_info.mask_id = mask_id;
       temp_mask_info.class_id = class_id;
       temp_mask_info.probability = class_prob;
-      temp_mask_info.mask_image_file = mask_path + "/" + mask_image;
+      temp_mask_info.mask_image_path = mask_path + "/" + mask_image;
       frame_info.masks_.push_back(temp_mask_info);
-      // std::cout << frame_info.masks_[mask_id].class_id <<frame_info.masks_[mask_id].probability<<frame_info.masks_[mask_id].mask_image_file << std::endl;
+      // std::cout << frame_info.masks_[mask_id].class_id <<frame_info.masks_[mask_id].probability<<frame_info.masks_[mask_id].mask_image_path << std::endl;
     }
     mask_file.close();
 
@@ -166,12 +166,15 @@ void MaskLogReader::getNext()
     }
 
     //read mask images
-    cvMasks.clear();
+    masksinfo.clear();
     for(int mask_id =0; mask_id < info.num_masks; mask_id++){
-      std::string mask_image_path = info.masks_[mask_id].mask_image_file;
-      cv::Mat mask_image = cv::imread(mask_image_path,CV_LOAD_IMAGE_ANYDEPTH);
-      std::cout<< mask_image.type() << std::endl;
-      info.masks_[].push_back(&mask_image);
+      MaskInfo temp_mask_info = info.masks_[mask_id];
+      std::string mask_image_path = temp_mask_info.mask_image_path;
+      temp_mask_info.cv_mat = cv::imread(mask_image_path,CV_LOAD_IMAGE_ANYDEPTH);
+      // std::cout<< mask_image.type() << std::endl;
+      masksinfo.push_back(temp_mask_info);
+      // std::cout<< mask_image.type() << std::endl;
+
     }
 
     imageSize = Resolution::getInstance().numPixels() * 3;
@@ -205,6 +208,6 @@ bool MaskLogReader::hasMore()
     return (lastGot + 1) < static_cast<int>(frames_.size());
 }
 
-std::vector<cv::Mat *> MaskLogReader::getMasks(){
-  return cvMasks;
+std::vector<MaskInfo> MaskLogReader::getMasks(){
+  return masksinfo;
 }

@@ -34,8 +34,8 @@ struct MaskInfo{
   int mask_id;
   int class_id;
   float probability;
-  std::string mask_image_file;
-  cv::Mat mask_cv;
+  std::string mask_image_path;
+  cv::Mat cv_mat;
 };
 
 struct FrameInfoMask {
@@ -63,7 +63,7 @@ public:
 
   int getNumMasks();
 
-  std::vector<cv::Mat *> getMasks();
+  std::vector<MaskInfo> getMasks();
 
   bool hasMore();
 
@@ -85,7 +85,7 @@ public:
 
   bool hasDepthFilled() { return has_depth_filled; }
 
-  MaskInfo masksinfo;
+  std::vector<MaskInfo> masksinfo;
 private:
   int64_t lastFrameTime;
   int lastGot;

@@ -180,6 +180,7 @@
 //     }
 //     gui->renderMap(map);
 //     gui->displayRawNetworkPredictions("pred",segmented_prob->mutable_gpu_data());
+//     gui->displayInstancePredictions("instance_pred",segmented_prob->mutable_gpu_data());
 //     // This is to display a predicted semantic segmentation from the fused map
 //     semantic_fusion->CalculateProjectedProbabilityMap(map);
 //     gui->displayArgMaxClassColouring("segmentation",semantic_fusion->get_rendered_probability()->mutable_gpu_data(),

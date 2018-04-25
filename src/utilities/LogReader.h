@@ -79,7 +79,7 @@ class LogReader
         int currentFrame;
 
         unsigned short * depthfilled;
-        std::vector<cv::Mat> cvMasks;
+        // std::vector<cv::Mat> cvMasks;
 
     protected:
         Bytef * decompressionBufferDepth;
