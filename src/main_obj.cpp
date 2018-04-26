@@ -25,6 +25,7 @@
 #include <cnn_interface/CaffeInterface.h>
 #include <map_interface/ElasticFusionInterface.h>
 #include <semantic_fusion/SemanticFusionInterface.h>
+#include <semantic_fusion/ObjectFusionInterface.h>
 #include <utilities/LiveLogReader.h>
 #include <utilities/RawLogReader.h>
 #include <utilities/PNGLogReader.h>
@@ -33,7 +34,7 @@
 
 #include <gui/Gui.h>
 
-std::vector<ClassColour> load_colour_scheme(std::string filename, int num_classes) {
+std::vector<ClassColour> load_colour_scheme1(std::string filename, int num_classes) {
   std::vector<ClassColour> colour_scheme(num_classes);
   std::ifstream file(filename);
   std::string str; 
@@ -54,7 +55,8 @@ std::vector<ClassColour> load_colour_scheme(std::string filename, int num_classe
   return colour_scheme;
 }
 
-int main_0(int argc, char *argv[])
+
+int main(int argc, char *argv[])
 {
   // CNN Skip params
   const int cnn_skip_frames = 10;
@@ -75,11 +77,15 @@ int main_0(int argc, char *argv[])
   const int num_classes = caffe.num_output_classes();
   std::cout<<"Network produces "<<num_classes<<" output classes"<<std::endl;
   // Check the class colour output and the number of classes matches
-  std::vector<ClassColour> class_colour_lookup = load_colour_scheme("../class_colour_scheme.data",num_classes);
+  std::vector<ClassColour> class_colour_lookup = load_colour_scheme1("../class_colour_scheme.data",num_classes);
   
-  std::cout<<"initialising SemanticFusionInterface" << std::endl;
-  std::unique_ptr<SemanticFusionInterface> semantic_fusion(new SemanticFusionInterface(num_classes,100));
+  // std::cout<<"initialising SemanticFusionInterface" << std::endl;
+  // std::unique_ptr<SemanticFusionInterface> semantic_fusion(new SemanticFusionInterface(num_classes,100));
   
+  // TODO : init num_classes???
+  std::cout<<"initialising ObjectFusionInterface" << std::endl;
+  std::unique_ptr<ObjectFusionInterface> object_fusion(new ObjectFusionInterface(num_classes,100));
+
   // Initialise the Gui, Map, and Kinect Log Reader
   const int width = 640;
   const int height = 480;
@@ -95,6 +101,7 @@ int main_0(int argc, char *argv[])
   // Choose the input Reader, live for a running OpenNI device, PNG for textfile lists of PNG frames
   std::cout<<"Initialising LogReader" << std::endl;  
   std::unique_ptr<LogReader> log_reader;
+  std::vector<MaskInfo> masks;
   if (argc > 2) {
     // log_reader.reset(new PNGLogReader(argv[1],argv[2]));
     log_reader.reset(new MaskLogReader(argv[1],argv[2]));
@@ -124,6 +131,8 @@ int main_0(int argc, char *argv[])
     if (!gui->paused() || gui->step()) {
       //std::cout << "getNext" << std::endl;
       log_reader->getNext();
+
+      masks = log_reader->getMasks();
       
       //std::cout << "setTrackingOnly" << std::endl;
       map->setTrackingOnly(gui->tracking());
@@ -139,9 +148,10 @@ int main_0(int argc, char *argv[])
       // is not performing tracking only (i.e. fine to not call, when working
       // with a static map)
       
-      //std::cout << "UpdateProbabilityTable" << std::endl;
+      std::cout << "UpdateProbabilityTable" << std::endl;
       if(!gui->tracking()) {
-        semantic_fusion->UpdateProbabilityTable(map);
+        object_fusion->UpdateProbabilityTable(map);
+        object_fusion->UpdateObjectTable(map);
       }
       
       // We do not need to perform a CNN update every frame, we perform it every
@@ -156,14 +166,18 @@ int main_0(int argc, char *argv[])
         }
         //printf("%f\n", segmented_prob->shape());
         //const float* prob_cpu = segmented_prob->cpu_data();
-       	semantic_fusion->UpdateProbabilities(segmented_prob,map);
+       	object_fusion->UpdateProbabilities(segmented_prob,map);
+
+        if(log_reader->getNumMasks()>0){
+          object_fusion->UpdateObjectIds(&masks,log_reader->getNumMasks(), map);
+        }
       }
       
-      //crf update
-      if (use_crf && frame_num % crf_skip_frames == 0) {
-        //std::cout<<"Performing CRF Update..."<<std::endl;
-        semantic_fusion->CRFUpdate(map,crf_iterations);
-      } 
+      // //crf update
+      // if (use_crf && frame_num % crf_skip_frames == 0) {
+      //   //std::cout<<"Performing CRF Update..."<<std::endl;
+      //   object_fusion->CRFUpdate(map,crf_iterations);
+      // } 
     }
     frame_num++;
     
@@ -178,19 +192,23 @@ int main_0(int argc, char *argv[])
       save_dir += label_dir;
       save_dir += suffix;
       std::cout<<"Saving labeled frame to "<<save_dir<<std::endl;
-      semantic_fusion->SaveArgMaxPredictions(save_dir,map);
+      object_fusion->SaveArgMaxPredictions(save_dir,map);
     }
     gui->renderMap(map);
     gui->displayRawNetworkPredictions("pred",segmented_prob->mutable_gpu_data());
-    // gui->displayInstancePredictions("instance_pred",segmented_prob->mutable_gpu_data());
 
-    std::vector<MaskInfo> masks = log_reader->getMasks();
     gui->displayInstancePredictions("instance_pred", log_reader->rgb, height, width, &masks);
+    gui->displayInstanceFusePredictions("instance_fuse_pred", log_reader->rgb, height, width, object_fusion->get_rendered_objects());    
+
     // This is to display a predicted semantic segmentation from the fused map
-    semantic_fusion->CalculateProjectedProbabilityMap(map);
-    gui->displayArgMaxClassColouring("segmentation",semantic_fusion->get_rendered_probability()->mutable_gpu_data(),
-                                     num_classes,semantic_fusion->get_class_max_gpu()->gpu_data(),
-                                     semantic_fusion->max_num_components(),map->GetSurfelIdsGpu(),0.0);
+    std::cout<<"CalculateProjectedProbabilityMap"<<std::endl;
+    object_fusion->CalculateProjectedProbabilityMap(map);
+    std::cout<<"CalculateProjectedObjectMap"<<std::endl;
+    object_fusion->CalculateProjectedObjectMap(map);
+
+    gui->displayArgMaxClassColouring("segmentation",object_fusion->get_rendered_probability()->mutable_gpu_data(),
+                                     num_classes,object_fusion->get_class_max_gpu()->gpu_data(),
+                                     object_fusion->max_num_components(),map->GetSurfelIdsGpu(),0.0);
     // This one requires the size of the segmentation display to be set in the Gui constructor to 224,224
     gui->displayImg("raw",map->getRawImageTexture());
     gui->postCall();

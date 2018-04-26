@@ -30,25 +30,26 @@
 
 // extern const int MAX_NUM_OBJECTS = 20;
 
-struct MaskInfo{
-  int mask_id;
-  int class_id;
-  float probability;
-  std::string mask_image_path;
-  cv::Mat cv_mat;
-};
+// struct MaskInfo{
+//   int mask_id;
+//   int class_id;
+//   float probability;
+//   int x1, y1, x2, y2;
+//   std::string mask_image_path;
+//   cv::Mat cv_mat;
+// };
 
-struct FrameInfoMask {
-  int64_t timestamp;
-  std::string depth_path;
-  std::string rgb_path;
-  std::string depth_id;
-  std::string rgb_id;
-  bool labeled_frame;
-  std::string frame_id;
-  std::vector<MaskInfo> masks_;
-  int num_masks;
-};
+// struct FrameInfoMask {
+//   int64_t timestamp;
+//   std::string depth_path;
+//   std::string rgb_path;
+//   std::string depth_id;
+//   std::string rgb_id;
+//   bool labeled_frame;
+//   std::string frame_id;
+//   std::vector<MaskInfo> masks_;
+//   int num_masks;
+// };
 
 class MaskLogReader : public LogReader
 {
@@ -96,4 +97,4 @@ protected:
   int num_labelled;
 };
 
-#endif /* PNGLOGREADER_H_ */
+#endif /* MASKLOGREADER_H_ */

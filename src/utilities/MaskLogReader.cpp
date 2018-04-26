@@ -67,20 +67,26 @@ MaskLogReader::MaskLogReader(std::string file, std::string labels_file)
 
     // read mask file for current frame which contains masks of detected object boxes
     float class_prob;
-    int mask_id, class_id, x_min, y_min, x_max, y_max;
+    int mask_id, class_id, x1, y1, x2, y2;
+    mask_id=0;
     std::string mask_image; 
-    while(mask_file >> mask_id >> class_id >> class_prob >> x_min >> y_min >> x_max >> y_max >> mask_image){
+    while(mask_file >> mask_id >> class_id >> class_prob >> x1 >> y1 >> x2 >> y2 >> mask_image){
       MaskInfo temp_mask_info;
+      mask_id++;
       temp_mask_info.mask_id = mask_id;
       temp_mask_info.class_id = class_id;
       temp_mask_info.probability = class_prob;
+      temp_mask_info.x1 = x1;
+      temp_mask_info.y1 = y1;
+      temp_mask_info.x2 = x2;
+      temp_mask_info.y2 = y2;
       temp_mask_info.mask_image_path = mask_path + "/" + mask_image;
       frame_info.masks_.push_back(temp_mask_info);
       // std::cout << frame_info.masks_[mask_id].class_id <<frame_info.masks_[mask_id].probability<<frame_info.masks_[mask_id].mask_image_path << std::endl;
     }
     mask_file.close();
 
-    frame_info.num_masks = mask_id+1;
+    frame_info.num_masks = mask_id;
     frames_.push_back(frame_info);
     id++;
   }
@@ -166,11 +172,17 @@ void MaskLogReader::getNext()
     }
 
     //read mask images
+    int boxh, boxw;
     masksinfo.clear();
     for(int mask_id =0; mask_id < info.num_masks; mask_id++){
       MaskInfo temp_mask_info = info.masks_[mask_id];
       std::string mask_image_path = temp_mask_info.mask_image_path;
-      temp_mask_info.cv_mat = cv::imread(mask_image_path,CV_LOAD_IMAGE_ANYDEPTH);
+      boxh = temp_mask_info.y2 - temp_mask_info.y1 +1;
+      boxw = temp_mask_info.x2 - temp_mask_info.x1 +1;
+      temp_mask_info.cv_mat = cv::Mat(boxh, boxw, CV_8UC3);
+      cv::Mat mask_small = cv::imread(mask_image_path,CV_LOAD_IMAGE_ANYDEPTH);
+      cv::resize(mask_small, temp_mask_info.cv_mat, temp_mask_info.cv_mat.size(), 0, 0);
+
       // std::cout<< mask_image.type() << std::endl;
       masksinfo.push_back(temp_mask_info);
       // std::cout<< mask_image.type() << std::endl;

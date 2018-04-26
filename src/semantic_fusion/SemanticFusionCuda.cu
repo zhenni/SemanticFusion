@@ -165,11 +165,11 @@ void updateTable(int n, const int* deleted_ids, const int num_deleted, const int
                  float const* probability_table, const int prob_width, const int prob_height, 
                  const int new_prob_width, float* new_probability_table, float const * map_table, float* new_map_table)
 {
-    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;  // kernal index
     if (index < n) {
-        const int class_id = index / new_prob_width;
-        const int component_id = index - (class_id * new_prob_width);
-        const int new_id = (class_id * prob_width) + component_id;
+        const int class_id = index / new_prob_width;  // get class id of current kernal in new table
+        const int component_id = index - (class_id * new_prob_width);  // get surfel id of current kernal in new table
+        const int new_id = (class_id * prob_width) + component_id; // get table index with max_componets as width
         if (component_id >= num_deleted) {
             // Initialise to prior (prob height is the number of classes)
             new_probability_table[new_id] = 1.0f / prob_height;
@@ -178,7 +178,7 @@ void updateTable(int n, const int* deleted_ids, const int num_deleted, const int
             new_map_table[component_id + prob_width] = -1.0;
             new_map_table[component_id + prob_width + prob_width] = 0.0;
         } else {
-            int offset = deleted_ids[component_id];
+            int offset = deleted_ids[component_id]; // get corresponded surf_id in previous table
             new_probability_table[new_id] = probability_table[(class_id * prob_width) + offset];
             // Also must update our max class mapping
             new_map_table[component_id] = map_table[offset];
@@ -193,9 +193,21 @@ void updateProbabilityTable(int* filtered_ids, const int num_filtered, const int
                             float const* probability_table, const int prob_width, const int prob_height, 
                             const int new_prob_width, float* new_probability_table, 
                             float const* map_table, float* new_map_table)
-{
+/*
+filtered_ids: map->GetDeletedSurfelIdsGpu(),
+num_filtered: num_deleted,
+current_table_size: current_table_size_,
+probability_table: class_probabilities_gpu_->gpu_data(),
+prob_width: table_width, prob_height: table_height,
+new_prob_width: new_table_width, 
+new_probability_table: class_probabilities_gpu_buffer_->mutable_gpu_data(),
+map_table: class_max_gpu_->gpu_data(),
+new_map_table: class_max_gpu_buffer_->mutable_gpu_data()
+*/
+{   
+
     const int threads = 512;
-    const int num_to_update = new_prob_width * prob_height; // max_components_*num_classes_
+    const int num_to_update = new_prob_width * prob_height; // new_table_width*num_classes_
     const int blocks = (num_to_update + threads - 1) / threads;  
     dim3 dimGrid(blocks);
     dim3 dimBlock(threads);

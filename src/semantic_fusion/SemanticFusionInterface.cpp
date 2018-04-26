@@ -72,10 +72,10 @@ void remove_index(std::vector<T>& vector, const std::vector<int>& to_remove) {
 }
 
 void SemanticFusionInterface::CalculateProjectedProbabilityMap(const std::unique_ptr<ElasticFusionInterface>& map) {
-  const int id_width = map->width();
-  const int id_height = map->height();
-  const int table_height = class_probabilities_gpu_->height();
-  const int table_width = class_probabilities_gpu_->width();
+  const int id_width = map->width(); // 640
+  const int id_height = map->height(); //480
+  const int table_height = class_probabilities_gpu_->height(); // num_classes
+  const int table_width = class_probabilities_gpu_->width(); // max components
   renderProbabilityMap(map->GetSurfelIdsGpu(),id_width,id_height,
                        class_probabilities_gpu_->mutable_gpu_data(),
                        table_width,table_height,
@@ -98,10 +98,13 @@ int SemanticFusionInterface::max_num_components() const {
 // the added surfel is initialized with uniqform probability and -1 class label 
 void SemanticFusionInterface::UpdateProbabilityTable(const std::unique_ptr<ElasticFusionInterface>& map)
 {
-  const int new_table_width = map->GetMapSurfelCount();
+  const int new_table_width = map->GetMapSurfelCount(); // new global surfel number
+  // printf("new_table_width %i\n", new_table_width);
   const int num_deleted = map->GetMapSurfelDeletedCount();
-  printf("%i\n", num_deleted);
+  // printf("num_deleted %i\n", num_deleted);
   const int table_width = class_probabilities_gpu_->width();  // max_components_
+  // printf("table_width %i\n", table_width);
+
   const int table_height = class_probabilities_gpu_->height();  // num_classes_
   updateProbabilityTable(map->GetDeletedSurfelIdsGpu(),num_deleted,current_table_size_,
                     class_probabilities_gpu_->gpu_data(), table_width, table_height,

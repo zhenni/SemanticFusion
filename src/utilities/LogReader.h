@@ -25,10 +25,14 @@
 #include <Utils/Img.h>
 #include <Utils/Resolution.h>
 
+#include "Types.h"
 #include "JPEGLoader.h"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
+
+
+
 class LogReader
 {
     public:
@@ -67,6 +71,10 @@ class LogReader
 
         virtual void setAuto(bool value) = 0;
 
+        virtual int getNumMasks() {return 0; }
+
+        virtual std::vector<MaskInfo> getMasks(){ return std::vector<MaskInfo>();}
+        
         virtual bool isLabeledFrame() { return false; }
         virtual bool is_valid() { return false; }
         virtual std::string getLabelFrameId() { return ""; }
