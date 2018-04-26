@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Project | Zhen and Zhenlin </title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Open+Sans);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body {
+        font-family: 'Open Sans', sans-serif;
+      }
+      h1, h2, h3, h4, h5 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+</script>
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      li p { 
+          line-height: 1.25em;
+      }
+      .red { color: #fa0000; }
+      .pink{color: rgb(249, 38, 114);}
+      .brown{color: rgb(165, 81, 21);}
+      .uncblue{color: rgb(68, 149, 205); }
+      .large { font-size: 1.4em; }
+      .l2arge { font-size: 1.6em; }
+      .l3arge { font-size: 1.8em; }
+      .l4arge { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      img[alt="pichs2"] { max-height:  2em; }
+      img[alt="pichs3"] { max-height:  3em; }
+      img[alt="pichs4"] { max-height:  4em; }
+      img[alt="pichs5"] { max-height:  5em; }
+      img[alt="pichs6"] { max-height:  6em; }
+      img[alt="pichs7"] { max-height:  7em; }
+      img[alt="pich"] { max-height:  12em; }
+      img[alt="pich2"] { max-height: 14em; }
+      img[alt="pich3"] { max-height: 16em; }
+      img[alt="pich4"] { max-height: 18em; }
+      img[alt="pich5"] { max-height: 20em; }
+      img[alt="pich6"] { max-height: 22em; }
+      img[alt="pich7"] { max-height: 24em; }
+      code {
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+</script>
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 15%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 82%;
+        float: right;
+        padding-top: 1em;
+      }
+    </style>
+  </head>
+  <body>
+      
+    
+    <textarea id="source">
+
+name: title
+layout: true
+class: center, middle, inverse
+---
+# Dense 3D Semantic Mapping with 
+# Convolutional Neural Networks
+
+[Zhen Wei](http://cs.unc.edu/~zhenni) &nbsp;
+[Zhenlin Xu](http://cs.unc.edu/~zhenlinx)
+
+[COMP 781 | Robotics | Project Presentation](http://cs.unc.edu/~zhenni/courses/UNC/COMP781/project/)
+
+
+
+---
+name: motivation
+layout: false
+
+# Motivation
+
+.uncblue[.large[Mobile Robots]]
+
+.center[![pich](imgs/car_slam.gif) ![pich](imgs/rover.jpg)]
+
+--
+
+
+- .uncblue[Localization]: inferring location given a map 
+- .uncblue[Mapping]: inferring a map given locations 
+
+
+--
+
+.uncblue[.large[Semantic Mapping]]
+
+--
+
+- not only .uncblue[where] objects are, but also .uncblue[what] they are
+
+
+???
+
+still want the map have semantic info 
+
+comes to the topic of 
+
+interact meaningfully with environments, intelligent robots must understand both the geometric and semantic properties of the scene surrounding them. Most recent research in robotic mapping and SLAM focused on modeling geometric perspective of the world. However, with the pure geometric map, a robot has no way to deal with requests of users like "Send me the water bottle on the table behind you." Therefore, it is critical for robots to utilize a map that express not only express \textit{where} objects are, but also \textit{what} it is. This project aims to building environmental maps that include semantically meaningful, object-level entities with point- or mesh-based geometrical representations.
+
+---
+
+# Problem Formulation
+
+--
+
+.large[
+
+- Input: a sequence of RGB-D video 
+- Output: camera pose and an environmental map with
+  - Dense geometric representation 
+  - RGB values
+  - Semantic labels
+]
+
+???
+
+for general SLAM problems
+
+for our task, we also want the semantic labels
+
+Challeneges are how to get semantic information and fuse the info to the built maps
+
+---
+
+# Methods: Semantic Fusion
+
+.center[![pich7](imgs/semantic_fusion.png)]
+
+
+---
+
+# Methods: Semantic Fusion
+
+.uncblue[.large[SLAM: Elastic Fusion]]
+
+- Dense SLAM 3D reconstruction using RGB-D images
+
+.center[<iframe width="672" height="378" src="https://www.youtube.com/embed/XySrhZpODYs?rel=0&amp;start=10" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>]
+
+
+
+---
+
+# Methods: Semantic Fusion
+
+
+.large[.uncblue[Semantic Segmentation]]
+
+- Encoder-Decoder Architecture
+- Caffe Deep Learning Framework
+
+.center[![pich](imgs/network.png)]
+
+???
+
+train the CNN to predict the semantic segmentation for frames
+
+output of the CNN predictions is the probility map for each label class
+
+---
+
+# Methods: Semantic Fusion
+
+
+
+.center[![pich7](imgs/semantic_fusion.png)]
+
+???
+
+fused the CNN prediction probability from RGB frames into the dense reconstruction
+
+---
+
+# Methods Extension: 
+
+.large[Object Oriented Semantic Fusion]
+
+.center[![pich6](imgs/segs.png)]
+
+
+
+---
+
+# Methods Extension: 
+
+.large[Object Oriented Semantic Fusion]
+
+- FCIS: Fully Convolutional Instance-aware Semantic Segmentation
+  - Finetuned on COCO segmentation dataset (81 classes)
+
+.center[![pich4](imgs/nyu_fcis.png)]
+
+---
+
+# Result
+
+Demo on NYUv2 Dataset (Bathroom-0003 scene)
+
+.center[<iframe width="672" height="378" src="https://www.youtube.com/embed/BXA0IoRabPU?rel=0&amp;showinfo=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>]
+
+
+???
+
+indoor scene dataset with RGB-D videos
+
+subset of frames have semantic labels
+
+1. semantic fusion
+
+2. instance segmentation prediction 
+
+3. instance fusion
+
+4. raw image
+
+---
+
+# Conclusion and Future Work
+
+--
+
+.uncblue[.large[Conclusion:]]
+  - Re-produce the experiments of SemanticFusion
+  - Replace semantic segmentation with instance segmentation.
+  - Experiment on NYUv2
+
+
+--
+
+.uncblue[.large[Future Work:]]
+- Improve the fusion of instance segmentation mapping 
+- Train instance/panoptic segmentation networks on indoor-scene datasets (e.g., SceneNet, ScanNet)
+- Semantic SLAM
+
+???
+
+test our method on the NYU-v2 dataset
+we deom our qualititive result 
+
+1. challenging: order of the objects;
+geometry matching
+
+2. 
+
+3. Consider using semantic information to improve SLAM results
+
+---
+
+class: center, middle, inverse
+
+# Questions
+
+---
+
+class: center, middle, inverse
+
+# Thank You!
+
+
+
+
+    </textarea>
+    
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+    <script>
+      var hljs = remark.highlighter.engine;
+    </script>
+    <script src="remark.language.js"></script>
+    <script>
+      // var slideshow = remark.create();
+      var slideshow = remark.create({
+      // sourceUrl: 'sample.md',
+      // sourceUrl: 'slides.md',
+      highlightStyle: 'monokai',
+      highlightLanguage: 'remark',
+      highlightLines: true
+    });
+    </script>
+    <script>
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-44561333-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script');
+        ga.src = 'https://ssl.google-analytics.com/ga.js';
+        var s = document.scripts[0];
+        s.parentNode.insertBefore(ga, s);
+      }());
+    </script>
+     
+    <script type="text/x-mathjax-config" https://cdn.mathjax.org/mathjax/latest/MathJax.js>
+        MathJax.Hub.Config({
+        tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        });
+    </script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+
+</script>
+    
+  </body>
+</html>
