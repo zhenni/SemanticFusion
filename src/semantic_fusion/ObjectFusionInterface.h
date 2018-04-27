@@ -48,6 +48,8 @@ public:
     , prior_sample_size_(prior_sample_size)
     , max_components_(max_components)
     , colour_threshold_(colour_threshold)
+    , num_objects_(0)
+    , mask_prob_threshold_(0.4)
   { 
     // This table contains for each component (surfel) the probability of
     // it being associated with each class
@@ -78,7 +80,10 @@ public:
 
   void UpdateObjectTable(const std::unique_ptr<ElasticFusionInterface>& map);
   void UpdateObjectIds(std::vector<MaskInfo>* masks, int num_masks, const std::unique_ptr<ElasticFusionInterface>& map);
+  void UpdateSceneObjects();
+  int MatchMasks(std::vector<int>& mask_surf_ids);
   void CalculateProjectedObjectMap(const std::unique_ptr<ElasticFusionInterface>& map);
+  int GetObjectNum();
 
   std::shared_ptr<caffe::Blob<float> > get_rendered_objects();
 
@@ -100,6 +105,12 @@ private:
   std::vector<sceneObject> objects;
   std::shared_ptr<caffe::Blob<float> > obj_ID_table_;
   std::shared_ptr<caffe::Blob<float> > obj_ID_table_buffer_;
+
+  std::shared_ptr<caffe::Blob<float> > obj_count_table_;
+  std::shared_ptr<caffe::Blob<float> > obj_count_table_buffer_;
+    
+  std::vector<sceneObject> scene_objects;
+
   // This stores the rendered objects of surfels from the map
   std::shared_ptr<caffe::Blob<float> > rendered_objects_gpu_;
 
@@ -107,6 +118,8 @@ private:
   const int prior_sample_size_;
   const int max_components_;
   const float colour_threshold_;
+  int num_objects_;
+  const float mask_prob_threshold_;
 };
 
 #endif /* OBJECT_FUSION_INTERFACE_H_ */

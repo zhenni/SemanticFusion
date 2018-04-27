@@ -40,15 +40,15 @@ struct ClassColour {
   int r, g, b;
 };
 
-// struct ObjectColour {
-//   ObjectColour() 
-//   : id(-1), r(0), g(0), b(0) {}
-//   ObjectColour(int id, int r_, int g_, int b_) 
-//   : id(id_), r(r_), g(g_), b(b_) {}
-//   // std::string name;
-//   int id;
-//   int r, g, b;
-// };
+struct ObjectColour {
+  ObjectColour() 
+  : id(-1), r(0), g(0), b(0) {}
+  ObjectColour(int id_, int r_, int g_, int b_) 
+  : id(id_), r(r_), g(g_), b(b_) {}
+  // std::string name;
+  int id;
+  int r, g, b;
+};
 
 struct MaskInfo{
   int mask_id;

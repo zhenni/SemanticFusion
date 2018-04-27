@@ -82,13 +82,15 @@ Gui::Gui(bool live_capture, std::vector<ClassColour> class_colour_lookup, const 
     .SetHandler(new pangolin::Handler3D(s_cam_));
   // Small views along the bottom
   pangolin::Display("raw").SetAspect(640.0f/480.0f);
-  pangolin::Display("pred").SetAspect(640.0f/480.0f);
+  // pangolin::Display("pred").SetAspect(640.0f/480.0f);
   pangolin::Display("instance_pred").SetAspect(640.0f/480.0f);  
+  pangolin::Display("instance_fuse_pred").SetAspect(640.0f/480.0f);  
   pangolin::Display("segmentation").SetAspect(640.0f/480.0f);
   pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0),1/4.0f,pangolin::Attach::Pix(180),1.0).SetLayout(pangolin::LayoutEqualHorizontal)
-    .AddDisplay(pangolin::Display("pred"))
+    // .AddDisplay(pangolin::Display("pred"))
     .AddDisplay(pangolin::Display("segmentation"))
     .AddDisplay(pangolin::Display("instance_pred"))
+    .AddDisplay(pangolin::Display("instance_fuse_pred"))
     .AddDisplay(pangolin::Display("raw"));
 
   // Vertical view along the side
@@ -102,12 +104,14 @@ Gui::Gui(bool live_capture, std::vector<ClassColour> class_colour_lookup, const 
   step_.reset(new pangolin::Var<bool>("ui.Step", false, false));
   reset_.reset(new pangolin::Var<bool>("ui.Reset", false, false));
   tracking_.reset(new pangolin::Var<bool>("ui.Tracking Only", false, false));
-  class_view_.reset(new pangolin::Var<bool>("ui.Class Colours", false, false));
+  class_view_.reset(new pangolin::Var<bool>("ui.Object Colours", false, false));
   class_choice_.reset(new pangolin::Var<ClassIdInput>("ui.Show class probs", ClassIdInput(0)));
   probability_texture_array_.reset(new pangolin::GlTextureCudaArray(224,224,GL_LUMINANCE32F_ARB));
   rendered_segmentation_texture_array_.reset(new pangolin::GlTextureCudaArray(segmentation_width_,segmentation_height_,GL_RGBA32F));
 
   instance_predictions_texture_array_.reset(new pangolin::GlTextureCudaArray(640, 480, GL_RGBA32F));
+  instance_fuse_predictions_texture_array_.reset(new pangolin::GlTextureCudaArray(640, 480, GL_RGBA32F));
+  instance_fuse_predictions_id_array_.reset(new pangolin::GlTextureCudaArray(640, 480, GL_LUMINANCE32F_ARB));
 
   // The gpu colour lookup
   std::vector<float> class_colour_lookup_rgb;
@@ -177,7 +181,43 @@ void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb,
   pangolin::CudaScopedMappedArray arr_tex(*instance_predictions_texture_array_.get());
   gpuErrChk(cudaGetLastError());
 
-  cv::Mat input_image(height,width,CV_8UC3, rgb);
+  cv::Mat input_orig(height,width,CV_8UC3, rgb);
+  cv::Mat input_image = input_orig.clone();
+
+  // int color[3] = {0, 0, 0};
+  int num_masks = masks->size();
+  for (int i = 0; i < num_masks; ++i){
+      int x1, y1, x2, y2, boxh, boxw;
+      x1 = (*masks)[i].x1;
+      x2 = (*masks)[i].x2;
+      y1 = (*masks)[i].y1;
+      y2 = (*masks)[i].y2;
+      boxh = y2-y1+1;
+      boxw = x2-x1+1;
+      // cv::Mat msk(boxh, boxw, CV_8UC3);
+      // cv::resize((*masks)[i].cv_mat, msk, msk.size(), 0, 0);
+      cv::Mat msk = (*masks)[i].cv_mat;
+
+      for (int h = 0; h < boxh; ++h) {
+          uchar* image_ptr = input_image.ptr<uchar>(h+y1);
+          const uchar* msk_ptr = msk.ptr<uchar>(h);
+
+          int msk_index = 0;
+          int image_index = x1*3;
+          float pixel;
+          for (int w = 0; w < boxw; ++w) {
+             bool bimsk = (msk_ptr[msk_index++] >= 256*0.4);
+
+             pixel = static_cast<float>(image_ptr[image_index]);
+             image_ptr[image_index++] = static_cast<uchar>(pixel + 0.7*class_colour_lookup_[i+1].r*bimsk - 0.7*bimsk*pixel);
+             pixel = static_cast<float>(image_ptr[image_index]);
+             image_ptr[image_index++] = static_cast<uchar>(pixel + 0.7*class_colour_lookup_[i+1].g*bimsk - 0.7*bimsk*pixel);
+             pixel = static_cast<float>(image_ptr[image_index]);
+             image_ptr[image_index++] = static_cast<uchar>(pixel + 0.7*class_colour_lookup_[i+1].b*bimsk - 0.7*bimsk*pixel);
+          }
+      }
+                   
+  }  
 
   caffe::Blob<float> image_blob(1, 480, 640, 4);
   float* image_data = image_blob.mutable_cpu_data();
@@ -209,6 +249,89 @@ void Gui::displayInstancePredictions(const std::string & id, const ImagePtr rgb,
   glDisable(GL_DEPTH_TEST);
   pangolin::Display(id).Activate();
   instance_predictions_texture_array_->RenderToViewport(true);
+  glEnable(GL_DEPTH_TEST);
+}
+
+
+void Gui::displayInstanceFusePredictions(const std::string & id, const std::shared_ptr<caffe::Blob<float> > rendered_objects) {
+
+  pangolin::CudaScopedMappedArray arr_tex(*instance_fuse_predictions_id_array_.get());
+  gpuErrChk(cudaGetLastError());
+
+  int height = rendered_objects->height();
+  int width = rendered_objects->width();
+
+  float* rendered_data = rendered_objects->mutable_cpu_data();
+  // float* obj_data_gpu = rendered_objects->mutable_gpu_data();
+
+  caffe::Blob<float> obj_blob(1, 480, 640, 1);
+  float* obj_blob_data = obj_blob.mutable_cpu_data();
+
+  for(int i = 0; i < height*width; ++i){
+    obj_blob_data[i] = rendered_data[i]/4.0;
+  }
+  obj_blob.Update();
+  float* obj_blob_data_gpu = obj_blob.mutable_gpu_data();
+
+  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)obj_blob_data_gpu, sizeof(float) * height * width , cudaMemcpyDeviceToDevice);
+  gpuErrChk(cudaGetLastError());
+  glDisable(GL_DEPTH_TEST);
+  pangolin::Display(id).Activate();
+  instance_fuse_predictions_id_array_->RenderToViewport(true);
+  glEnable(GL_DEPTH_TEST);
+}
+
+
+void Gui::displayInstanceFusePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width, const std::shared_ptr<caffe::Blob<float> > rendered_objects) {
+  pangolin::CudaScopedMappedArray arr_tex(*instance_fuse_predictions_texture_array_.get());
+  gpuErrChk(cudaGetLastError());
+
+  cv::Mat input_orig(height,width,CV_8UC3, rgb);
+  cv::Mat input_image = input_orig.clone();
+
+  caffe::Blob<float> image_blob(1, 480, 640, 4);
+  float* image_data = image_blob.mutable_cpu_data();
+  float* obj_data = rendered_objects->mutable_cpu_data();
+
+  // float max_id = 0;
+  for (int h = 0; h < height; ++h) {
+    const uchar* image_ptr = input_image.ptr<uchar>(h);
+    int image_index = 0;
+    for (int w = 0; w < width; ++w) {
+      float r = static_cast<float>(image_ptr[image_index++]);
+      float g = static_cast<float>(image_ptr[image_index++]);
+      float b = static_cast<float>(image_ptr[image_index++]);
+      // std::cout << r << ',' << g << ',' << b << std::endl;
+      const int r_offset = (h * width + w) * 4 + 0; // ((0 * height) + h) * width + w;
+      const int g_offset = (h * width + w) * 4 + 1; // ((1 * height) + h) * width + w;
+      const int b_offset = (h * width + w) * 4 + 2; // ((2 * height) + h) * width + w;
+
+      const int obj_id_offset = (h * width + w); //w * height + h;
+      int obj_id = int(obj_data[obj_id_offset]);
+      bool bimsk = (obj_id!=0);
+      
+      image_data[r_offset] = (r+0.7*bimsk*class_colour_lookup_[obj_id-1].r-0.7*bimsk*r)/255.0f;// r/255.0f;
+      image_data[g_offset] = (g+0.7*bimsk*class_colour_lookup_[obj_id-1].g-0.7*bimsk*g)/255.0f;// g/255.0f;
+      image_data[b_offset] = (b+0.7*bimsk*class_colour_lookup_[obj_id-1].b-0.7*bimsk*b)/255.0f; // b/255.0f;
+      // if(bimsk){
+      //   std::cout << "@ obj_id: " <<  obj_id << std::endl;
+      // }
+      // max_id = max(max_id, obj_id);
+
+      // image_data[((3 * height) + h) * width + w] = 1;
+      image_data[(h * width + w) * 4 + 3] = 1;
+    }
+    // std::cout << "## max_id: " << max_id << std::endl;
+  }
+
+  float* image_data_gpu = image_blob.mutable_gpu_data();
+  // float* my_device_ptr = device_ptr + (224 * 224) * class_choice_.get()->Get().class_id_;
+  // cudaMemcpyToArray(*arr_tex, 0, 0, (void*)my_device_ptr, sizeof(float) * 224 * 224 , cudaMemcpyDeviceToDevice);
+  cudaMemcpyToArray(*arr_tex, 0, 0, (void*)image_data_gpu, sizeof(float) * height * width * 4 , cudaMemcpyDeviceToDevice);
+  gpuErrChk(cudaGetLastError());
+  glDisable(GL_DEPTH_TEST);
+  pangolin::Display(id).Activate();
+  instance_fuse_predictions_texture_array_->RenderToViewport(true);
   glEnable(GL_DEPTH_TEST);
 }
 

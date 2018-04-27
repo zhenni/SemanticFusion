@@ -28,6 +28,7 @@
 #include <pangolin/gl/glcuda.h>
 #include <pangolin/gl/gldraw.h>
 
+#include <cnn_interface/CaffeInterface.h>
 #include <map_interface/ElasticFusionInterface.h>
 #include <utilities/Types.h>
 #include <utilities/MaskLogReader.h>
@@ -47,6 +48,9 @@ public:
   void displayRawNetworkPredictions(const std::string & id, float* device_ptr);
   void displayImg(const std::string & id, GPUTexture * img);
   void displayInstancePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width, std::vector<MaskInfo>* masks); 
+  void displayInstanceFusePredictions(const std::string & id, const ImagePtr rgb, const int height, const int width, const std::shared_ptr<caffe::Blob<float> > rendered_objects); 
+  void displayInstanceFusePredictions(const std::string & id, const std::shared_ptr<caffe::Blob<float> > rendered_objects);
+
 
   bool reset() const { return pangolin::Pushed(*reset_.get()); }
   bool paused() const { return *pause_.get(); }
@@ -72,8 +76,10 @@ private:
   std::unique_ptr<pangolin::Var<ClassIdInput>> class_choice_;
   std::unique_ptr<pangolin::GlTextureCudaArray> probability_texture_array_;
   std::unique_ptr<pangolin::GlTextureCudaArray> rendered_segmentation_texture_array_;
+  std::unique_ptr<pangolin::GlTextureCudaArray> instance_fuse_predictions_id_array_;
 
   std::unique_ptr<pangolin::GlTextureCudaArray> instance_predictions_texture_array_;
+  std::unique_ptr<pangolin::GlTextureCudaArray> instance_fuse_predictions_texture_array_;
 
   pangolin::GlRenderBuffer* render_buffer_;
   pangolin::GlFramebuffer* color_frame_buffer_;

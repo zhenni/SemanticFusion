@@ -73,7 +73,7 @@ MaskLogReader::MaskLogReader(std::string file, std::string labels_file)
     while(mask_file >> mask_id >> class_id >> class_prob >> x1 >> y1 >> x2 >> y2 >> mask_image){
       MaskInfo temp_mask_info;
       mask_id++;
-      temp_mask_info.mask_id = mask_id;
+      temp_mask_info.mask_id = mask_id+1;  
       temp_mask_info.class_id = class_id;
       temp_mask_info.probability = class_prob;
       temp_mask_info.x1 = x1;

@@ -59,7 +59,7 @@ std::vector<ClassColour> load_colour_scheme1(std::string filename, int num_class
 int main(int argc, char *argv[])
 {
   // CNN Skip params
-  const int cnn_skip_frames = 10;
+  const int cnn_skip_frames = 5;
   
   // Option CPU-based CRF smoothing
   const bool use_crf = false;
@@ -148,12 +148,13 @@ int main(int argc, char *argv[])
       // is not performing tracking only (i.e. fine to not call, when working
       // with a static map)
       
-      std::cout << "UpdateProbabilityTable" << std::endl;
+      // std::cout << "UpdateProbabilityTable" << std::endl;
       if(!gui->tracking()) {
         object_fusion->UpdateProbabilityTable(map);
         object_fusion->UpdateObjectTable(map);
       }
       
+      std::cout<< "obj num: "<< object_fusion->GetObjectNum()<< std::endl;
       // We do not need to perform a CNN update every frame, we perform it every
       // 'cnn_skip_frames'
       //std::cout << "Caffe ProcessFrame" << std::endl;
@@ -195,16 +196,20 @@ int main(int argc, char *argv[])
       object_fusion->SaveArgMaxPredictions(save_dir,map);
     }
     gui->renderMap(map);
-    gui->displayRawNetworkPredictions("pred",segmented_prob->mutable_gpu_data());
+    // gui->displayRawNetworkPredictions("pred",segmented_prob->mutable_gpu_data());
 
-    gui->displayInstancePredictions("instance_pred", log_reader->rgb, height, width, &masks);
-    gui->displayInstanceFusePredictions("instance_fuse_pred", log_reader->rgb, height, width, object_fusion->get_rendered_objects());    
 
     // This is to display a predicted semantic segmentation from the fused map
-    std::cout<<"CalculateProjectedProbabilityMap"<<std::endl;
+    // std::cout<<"CalculateProjectedProbabilityMap"<<std::endl;
     object_fusion->CalculateProjectedProbabilityMap(map);
-    std::cout<<"CalculateProjectedObjectMap"<<std::endl;
+    // std::cout<<"CalculateProjectedObjectMap"<<std::endl;
     object_fusion->CalculateProjectedObjectMap(map);
+
+    // if (frame_num == 0 || (frame_num > 1 && ((frame_num + 1) % cnn_skip_frames == 0))) {
+    gui->displayInstancePredictions("instance_pred", log_reader->rgb, height, width, &masks);
+    // gui->displayInstanceFusePredictions("instance_fuse_pred", object_fusion->get_rendered_objects());    
+    gui->displayInstanceFusePredictions("instance_fuse_pred", log_reader->rgb, height, width, object_fusion->get_rendered_objects());    
+    // }
 
     gui->displayArgMaxClassColouring("segmentation",object_fusion->get_rendered_probability()->mutable_gpu_data(),
                                      num_classes,object_fusion->get_class_max_gpu()->gpu_data(),

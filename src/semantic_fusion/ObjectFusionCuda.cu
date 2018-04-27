@@ -22,15 +22,15 @@ void updateTable(int num_to_update, const int* deleted_ids, const int num_delete
 {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;  // kernal index
     if (index < num_to_update) {
-        const int class_id = index / new_prob_width;  // get class id of current kernal in new table
-        const int component_id = index - (class_id * new_prob_width);  // get surfel id of current kernal in new table
+        const int channel_id = index / new_prob_width;  // get class id of current kernal in new table
+        const int component_id = index - (channel_id * new_prob_width);  // get surfel id of current kernal in new table
         // const int new_id = (class_id * prob_width) + component_id; // get table index with max_componets as width
         if (component_id >= num_deleted) {
             // Initialise to prior (prob height is the number of classes)
             // new_object_id_table[new_id] = 1.0f / prob_height;
             // Reset the max class surfel colouring lookup
-            new_object_id_table[component_id] = -1.0;  // obj id
-            new_object_id_table[component_id + prob_width] = -1.0; // obj conf
+            new_object_id_table[component_id] = 0.0;  // obj id
+            new_object_id_table[component_id + prob_width] = 1.0; // obj conf
             new_object_id_table[component_id + prob_width + prob_width] = 0.0;
         } else {
             int offset = deleted_ids[component_id]; // get corresponded surf_id in previous table
@@ -50,7 +50,7 @@ void updateObjectTable(int* deleted_ids, const int num_deleted, const int curren
                             float const* object_id_table, const int prob_width, const int prob_height, 
                           const int new_table_width, float* new_object_id_table){
     const int threads = 512;
-    const int num_to_update = new_table_width * prob_height; // new_table_width*num_classes_
+    const int num_to_update = new_table_width;// * prob_height; // new_table_width*num_classes_
     const int blocks = (num_to_update + threads - 1) / threads;  
     dim3 dimGrid(blocks);
     dim3 dimBlock(threads);
@@ -87,21 +87,24 @@ void objectTableUpdate(cudaTextureObject_t ids, const int ids_width, const int i
     	// int surfel_id = 0;
     	int first_h, first_w;
 
-
 	    for (int h = y_min; h < y_max; ++h) {
-	        int other_surfel_id;
-        	for (int w = x_min; w < x_max; ++w) {
-            	other_surfel_id = tex2D<int>(ids,w+x1,h+y1);
-            	if (other_surfel_id == surfel_id) {
-                	first_h = h;
-                	first_w = w;
-                	break;
-           		}
-        	}
-        	if (other_surfel_id == surfel_id) {
+        int other_surfel_id;
+        for (int w = x_min; w < x_max; ++w) {
+            other_surfel_id = tex2D<int>(ids,w+x1,h+y1);
+            if (other_surfel_id == surfel_id) {
+                first_h = h;
+                first_w = w;
+                break;
+            }
+        }
+        if (other_surfel_id == surfel_id) {
                 break;
             }
     	}
+
+	    if (first_h != y || first_w != x) {
+	        surfel_id = 0;
+	    }
 
     	if (surfel_id>0) {
     		// pointer at (x,y) on mask
@@ -110,11 +113,14 @@ void objectTableUpdate(cudaTextureObject_t ids, const int ids_width, const int i
 	        float* prior_id = object_id_table + surfel_id;
 
 	        // TO DO: fusion
-	        //	        
+	        //	    
+	        if(mask_probabilities[y*box_width+x] > 0.4){
+		        object_id_table[surfel_id] = static_cast<float>(obj_id);
+	   			object_id_table[surfel_id + map_size] = 1.0;	
+	        	object_id_table[surfel_id + map_size + map_size] += 1.0;
+	        }    
     	} 
-    	object_id_table[surfel_id] = static_cast<float>(obj_id);
-        object_id_table[surfel_id + map_size] = class_prob;
-        object_id_table[surfel_id + map_size + map_size] += 1.0;	
+    		
 
     }
     
@@ -148,7 +154,7 @@ void renderObjectMapKernel(cudaTextureObject_t ids, const int ids_width, const i
     int projected_object_offset = y * ids_width + x;
     int object_table_offset = surfel_id;
     if (surfel_id > 0) {
-        rendered_objects[projected_object_offset] = object_id_table[object_table_offset];
+        rendered_objects[projected_object_offset] = object_id_table[object_table_offset]+1;
     } else {
         rendered_objects[projected_object_offset] = 0.0; // ((class_id == 0) ? 1.0 : 0.0);
     }
